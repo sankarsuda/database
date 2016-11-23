@@ -1,0 +1,32 @@
+parameters:
+    git_dir: .
+    bin_dir: vendor/bin
+    stop_on_failure: true
+    tasks:
+        composer: ~
+        jsonlint: ~
+        git_conflict: ~
+        phplint: ~
+        yamllint: ~
+        php7cc: ~
+        securitychecker:
+            run_always: true
+        git_blacklist:
+            keywords:
+                - "dump("
+                - "exit;"
+                - "die("
+                - "printr"
+                - "print_r"
+        phpcsfixer2:
+            allow_risky: false
+            cache_file: ~
+            config: ~
+            rules: []
+            using_cache: true
+            path_mode: ~
+            verbose: true
+        phpcs:
+            standard: "phpcs.xml"
+        phpunit: ~
+
