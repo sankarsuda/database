@@ -11,7 +11,7 @@
 
 namespace Turbo\Database;
 
-use Turbo\Util\Log;
+use Turbo\Database\Util\Log;
 
 /**
  * @author sankar <sankar.suda@gmail.com>

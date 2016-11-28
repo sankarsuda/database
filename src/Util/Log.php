@@ -9,7 +9,7 @@
  * file that was distributed with this source code
  */
 
-namespace Speedwork\Util;
+namespace Turbo\Database\Util;
 
 /**
  * @author sankar <sankar.suda@gmail.com>
