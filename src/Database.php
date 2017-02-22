@@ -12,7 +12,7 @@
 namespace Turbo\Database;
 
 use Exception;
-use Trubo\Util\Pagination;
+use Turbo\Database\Util\Pagination;
 
 /**
  * @author sankar <sankar.suda@gmail.com>
@@ -592,17 +592,13 @@ class Database
 
         $paging = $params['paging'] ?: $params['pagingtype'];
         $paging = $paging ?: 'mixed';
-
-        $is_api_request = $this->get('is_api_request');
-
-        if ($is_api_request) {
-            $paging = 'api';
-        }
+        $page   = $_REQUEST['page'];
+        $dlimit = $_REQUEST['limit'];
 
         $page = ($params['page'] && is_numeric($params['page']))
             ? $params['page']
-            : !empty($this->data['page']) && is_numeric($this->data['page'])
-            ? $this->data['page']
+            : !empty($page) && is_numeric($page)
+            ? $page
             : 1;
 
         $limit = $params['limit'];
@@ -613,8 +609,8 @@ class Database
 
         $limit = ($limit && is_numeric($limit)) ? $limit : 25;
 
-        if (!empty($this->data['limit']) && is_numeric($this->data['limit'])) {
-            $limit = $this->data['limit'];
+        if (!empty($dlimit) && is_numeric($dlimit)) {
+            $limit = $dlimit;
         }
 
         $limit_start = $limit * ($page - 1);

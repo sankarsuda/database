@@ -52,6 +52,10 @@ class MysqliDriver extends DboSource
             $config['port']   = null;
         }
 
+        if ($config['persistent']) {
+            $config['host'] = 'p:'.ltrim($config['host'], 'p:');
+        }
+
         $this->connection = mysqli_connect($config['host'], $config['username'], $config['password'], $config['database'], $config['port'], $config['socket']);
 
         if ($this->connection !== false) {
