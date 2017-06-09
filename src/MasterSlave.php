@@ -23,28 +23,30 @@ class MasterSlave extends Database
 
     public function __construct($params = [])
     {
-        if (!isset($params['slaves']) || !isset($params['master'])) {
-            throw new \InvalidArgumentException('master or slaves configuration missing');
+        if (!isset($params['masters']) && !isset($params['master'])) {
+            throw new \InvalidArgumentException('Master or masters configuration is missing.');
         }
+
         if (count($params['slaves']) == 0) {
-            throw new \InvalidArgumentException('You have to configure at least one slaves.');
+            throw new \InvalidArgumentException('You have to configure at least one slave.');
         }
 
         $config = [];
 
-        $config['master'] = $params['master'];
-        $slaves           = $params['slaves'];
-        $masters          = $params['masters'];
+        $master      = $params['master'];
+        $slaves      = $params['slaves'];
+        $masters     = $params['masters'];
+        $connections = $params['connections'];
 
         unset($params['slaves'], $params['master'], $params['masters']);
 
-        $config['slave'] = $slaves[mt_rand(0, count($slaves) - 1)];
-        if (is_array($masters)) {
-            $config['master'] = $masters[mt_rand(0, count($masters) - 1)];
+        if (!is_array($masters)) {
+            $masters = [$master];
         }
 
-        $config['slave']  = array_merge($params, $config['slave']);
-        $config['master'] = array_merge($params, $config['master']);
+        $config['slave']       = array_merge($params, ['connections' => $slaves]);
+        $config['master']      = array_merge($params, ['connections' => $masters]);
+        $config['connections'] = $connections;
 
         if (!empty($config['connections'])) {
             $this->split = true;
@@ -64,18 +66,31 @@ class MasterSlave extends Database
     {
         $name = $name ?: 'slave';
 
-        if (isset($connections[$name])) {
-            return $connections[$name];
+        if (isset($this->connections[$name])) {
+            return $this->connections[$name];
         }
 
         if ($name !== 'slave' && $name !== 'master') {
             throw new \InvalidArgumentException('Invalid option to connect(), only master or slave allowed.');
         }
 
-        $config = $this->params[$name];
+        $config      = $this->params[$name];
+        $connections = $config['connections'];
+        $strategy    = $config['strategy'];
 
-        $this->setConfig($config);
-        $this->connections[$name] = parent::connect();
+        if ($strategy == 'random') {
+            $connections = [$connections[mt_rand(0, count($connections) - 1)]];
+        }
+
+        foreach ($connections as $connection) {
+            $this->setConfig(array_merge($config, $connection));
+            $this->connections[$name] = parent::connect();
+            $connected                = parent::isConnected();
+
+            if ($connected) {
+                break;
+            }
+        }
 
         return $this->connections[$name];
     }
