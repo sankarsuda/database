@@ -1,9 +1,9 @@
 <?php
 
 /*
- * This file is part of the Sqlbox package.
+ * This file is part of the Speedwork package.
  *
- * (c) Solutions Infini <info@solutionsinfini.com>
+ * (c) Sankar <sankar.suda@gmail.com>
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code
