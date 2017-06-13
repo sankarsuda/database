@@ -43,6 +43,6 @@ class MasterSlaveExtended extends MasterSlave
             return $types[$type];
         }
 
-        return $types['other'];
+        return $types['other'] ?: $default;
     }
 }

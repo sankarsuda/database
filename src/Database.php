@@ -19,12 +19,12 @@ use Turbo\Database\Util\Pagination;
  */
 class Database
 {
-    private $cache     = false;
-    private $connected = false;
-    private $driver;
-    private $config = [];
-    private $prefix;
-    private $sql;
+    protected $cache     = false;
+    protected $connected = false;
+    protected $driver;
+    protected $config = [];
+    protected $prefix;
+    protected $sql;
 
     public function __construct($config = [])
     {
@@ -54,6 +54,18 @@ class Database
         $this->driver    = new $database($config);
         $this->connected = $this->driver->connect();
 
+        return $this->driver;
+    }
+
+    protected function setDriver($driver)
+    {
+        $this->driver = $driver;
+
+        return $driver;
+    }
+
+    protected function getDriver()
+    {
         return $this->driver;
     }
 
@@ -495,7 +507,7 @@ class Database
      * @param array $parentTag
     */
 
-    private function buildThreaded($parent, $menuData, $replace, $parentTag)
+    protected function buildThreaded($parent, $menuData, $replace, $parentTag)
     {
         $html = '';
         $html .= $parentTag[0];

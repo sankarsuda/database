@@ -67,7 +67,7 @@ class MasterSlave extends Database
         $name = $name ?: 'slave';
 
         if (isset($this->connections[$name])) {
-            return $this->connections[$name];
+            return $this->setDriver($this->connections[$name]);
         }
 
         if ($name !== 'slave' && $name !== 'master') {
@@ -150,6 +150,6 @@ class MasterSlave extends Database
             return $connections[$type];
         }
 
-        return $connections['other'];
+        return $connections['other'] ?: $default;
     }
 }

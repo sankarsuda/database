@@ -52,7 +52,7 @@ class Master extends Database
         $name = $name ?: 'master';
 
         if (isset($this->connections[$name])) {
-            return $this->connections[$name];
+            return $this->setDriver($this->connections[$name]);
         }
 
         if ($name !== 'master') {
