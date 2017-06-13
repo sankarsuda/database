@@ -51,10 +51,11 @@ class Database
 
         $database = '\\Turbo\\Database\\Drivers\\'.ucfirst($driver).'Driver';
 
-        $this->driver    = new $database($config);
-        $this->connected = $this->driver->connect();
+        $driver = new $database($config);
+        $this->setDriver($driver);
+        $this->connected = $driver->connect();
 
-        return $this->driver;
+        return $driver;
     }
 
     protected function setDriver($driver)
