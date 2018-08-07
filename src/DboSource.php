@@ -155,8 +155,8 @@ class DboSource extends DataSource
 
         return $this->renderStatement($type, [
             'conditions' => $this->conditions($query['conditions'], true, true),
-            'fields'     => (count($query['fields']) > 0) ? @implode(', ', $query['fields']) : ' * ',
-            'values'     => (count($query['values']) > 0) ? @implode(', ', $query['values']) : '',
+            'fields'     => (is_array($query['fields'])) ? @implode(', ', $query['fields']) : ' * ',
+            'values'     => (is_array($query['values'])) ? @implode(', ', $query['values']) : '',
             'table'      => $table,
             'alias'      => ($query['alias']) ? $this->alias.$this->name($query['alias']) : '',
             'order'      => $this->order($query['order']),
