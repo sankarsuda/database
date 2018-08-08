@@ -150,15 +150,12 @@ class DboSource extends DataSource
             }
         }
 
-        //$query['fields'] = $this->name($query['fields']);
-        //$query['values'] = $this->value($query['values']);
-
         return $this->renderStatement($type, [
             'conditions' => $this->conditions($query['conditions'], true, true),
             'fields'     => (is_array($query['fields'])) ? @implode(', ', $query['fields']) : ' * ',
             'values'     => (is_array($query['values'])) ? @implode(', ', $query['values']) : '',
             'table'      => $table,
-            'alias'      => ($query['alias']) ? $this->alias.$this->name($query['alias']) : '',
+            'alias'      => ($query['alias']) ? $this->alias . $this->name($query['alias']) : '',
             'order'      => $this->order($query['order']),
             'limit'      => $this->limit($query['limit'], $query['offset'], $query['page']),
             'joins'      => @implode(' ', $query['joins']),
@@ -171,7 +168,7 @@ class DboSource extends DataSource
      **/
     public function buildQuery($query, $table = '', $type = 'select')
     {
-        return $this->buildStatement($query, $table, $type);
+        return $this->buildStatement($query, $this->table($table), $type);
     }
 
     /**
@@ -185,7 +182,7 @@ class DboSource extends DataSource
     {
         extract($data);
 
-        return trim("{$type} JOIN {$table} {$alias} ON ({$conditions})");
+        return trim("{$type} JOIN " . $this->table($table) . " {$alias} ON ({$conditions})");
     }
 
     /**
@@ -205,7 +202,7 @@ class DboSource extends DataSource
         ], $join);
 
         if (!empty($data['alias'])) {
-            $data['alias'] = $this->alias.$this->name($data['alias']);
+            $data['alias'] = $this->alias . $this->name($data['alias']);
         }
         if (!empty($data['conditions'])) {
             $data['conditions'] = trim($this->conditions($data['conditions'], true, false));
@@ -229,43 +226,43 @@ class DboSource extends DataSource
 
         switch (strtolower($type)) {
             case 'select':
-                return "SELECT {$fields} FROM {$table} {$alias} {$joins} {$conditions} {$group} {$order} {$limit}";
-            break;
+                return "SELECT {$fields} FROM " . $this->table($table) . " {$alias} {$joins} {$conditions} {$group} {$order} {$limit}";
+                break;
             case 'create':
             case 'insert':
                 $values = rtrim($values, ')');
                 $values = ltrim($values, '(');
 
-                return "INSERT INTO {$table} ({$fields}) VALUES ({$values})";
-            break;
+                return "INSERT INTO " . $this->table($table) . " ({$fields}) VALUES ({$values})";
+                break;
             case 'update':
                 if (!empty($alias)) {
                     $aliases = "{$this->alias}{$alias} {$joins} ";
                 }
 
-                return "UPDATE {$table} {$aliases}SET {$fields} {$conditions}";
-            break;
+                return "UPDATE " . $this->table($table) . " {$aliases}SET {$fields} {$conditions}";
+                break;
             case 'delete':
                 if (!empty($alias)) {
                     $aliases = "{$this->alias}{$alias} {$joins} ";
                 }
 
-                return "DELETE {$alias} FROM {$table} {$aliases} {$conditions} {$limit}";
-            break;
+                return "DELETE {$alias} FROM " . $this->table($table) . " {$aliases} {$conditions} {$limit}";
+                break;
             case 'schema':
                 foreach (['columns', 'indexes'] as $var) {
                     if (is_array(${$var})) {
-                        ${$var} = "\t".implode(",\n\t", array_filter(${$var}));
+                        ${$var} = "\t" . implode(",\n\t", array_filter(${$var}));
                     }
                 }
                 if (trim($indexes) != '') {
                     $columns .= ',';
                 }
 
-                return "CREATE TABLE {$table} (\n{$columns}{$indexes});";
-            break;
+                return "CREATE TABLE " . $this->table($table) . " (\n{$columns}{$indexes});";
+                break;
             case 'alter':
-            break;
+                break;
         }
     }
 
@@ -293,17 +290,17 @@ class DboSource extends DataSource
             $out = $this->conditionKeysToString($conditions, $quoteValues, $model);
 
             if (empty($out)) {
-                return $clause.' 1 = 1';
+                return $clause . ' 1 = 1';
             }
 
-            return $clause.implode(' AND ', $out);
+            return $clause . implode(' AND ', $out);
         }
         if ($conditions === false || $conditions === true) {
-            return $clause.(int) $conditions.' = 1';
+            return $clause . (int) $conditions . ' = 1';
         }
 
         if (empty($conditions) || trim($conditions) == '') {
-            return $clause.'1 = 1';
+            return $clause . '1 = 1';
         }
         $clauses = '/^WHERE\\x20|^GROUP\\x20BY\\x20|^HAVING\\x20|^ORDER\\x20BY\\x20/i';
 
@@ -316,7 +313,7 @@ class DboSource extends DataSource
             $conditions = $this->quoteFields($conditions);
         }
 
-        return $clause.$conditions;
+        return $clause . $conditions;
     }
 
     /**
@@ -349,10 +346,10 @@ class DboSource extends DataSource
             if (is_numeric($key) && empty($value)) {
                 continue;
             } elseif (is_numeric($key) && is_string($value)) {
-                $out[] = $not.$this->quoteFields($value);
+                $out[] = $not . $this->quoteFields($value);
             } elseif ((is_numeric($key) && is_array($value)) || in_array(strtolower(trim($key)), $bool)) {
                 if (in_array(strtolower(trim($key)), $bool)) {
-                    $join = ' '.strtoupper($key).' ';
+                    $join = ' ' . strtoupper($key) . ' ';
                 } else {
                     $key = $join;
                 }
@@ -360,29 +357,29 @@ class DboSource extends DataSource
 
                 if (strpos($join, 'NOT') !== false) {
                     if (strtoupper(trim($key)) == 'NOT') {
-                        $key = 'AND '.trim($key);
+                        $key = 'AND ' . trim($key);
                     }
                     $not = 'NOT ';
                 }
 
                 if (empty($value[1])) {
                     if ($not) {
-                        $out[] = $not.'('.$value[0].')';
+                        $out[] = $not . '(' . $value[0] . ')';
                     } else {
                         $out[] = $value[0];
                     }
                 } else {
-                    $out[] = '('.$not.'('.implode(') '.strtoupper($key).' (', $value).'))';
+                    $out[] = '(' . $not . '(' . implode(') ' . strtoupper($key) . ' (', $value) . '))';
                 }
             } else {
                 if (is_object($value) && isset($value->type)) {
                     if ($value->type == 'identifier') {
-                        $data .= $this->name($key).' = '.$this->name($value->value);
+                        $data .= $this->name($key) . ' = ' . $this->name($value->value);
                     } elseif ($value->type == 'expression') {
                         if (is_numeric($key)) {
                             $data .= $value->value;
                         } else {
-                            $data .= $this->name($key).' = '.$value->value;
+                            $data .= $this->name($key) . ' = ' . $value->value;
                         }
                     }
                 } elseif (is_array($value) && !empty($value) && !$valueInsert) {
@@ -390,9 +387,9 @@ class DboSource extends DataSource
                     if (array_keys($value) === array_values(array_keys($value))) {
                         $count = count($value);
                         //if ($count === 1) {
-                         //   $data = $this->quoteFields($key).' = (';
+                        //   $data = $this->quoteFields($key).' = (';
                         //} else {
-                            $data = $this->quoteFields($key).' IN (';
+                        $data = $this->quoteFields($key) . ' IN (';
                         //}
                         if ($quoteValues || strpos($value[0], '-!') !== 0) {
                             if (is_object($model)) {
@@ -404,7 +401,7 @@ class DboSource extends DataSource
                     } else {
                         $ret = $this->conditionKeysToString($value, $quoteValues, $model);
                         if (count($ret) > 1) {
-                            $data = '('.implode(') AND (', $ret).')';
+                            $data = '(' . implode(') AND (', $ret) . ')';
                         } elseif (isset($ret[0])) {
                             $data = $ret[0];
                         }
@@ -441,7 +438,7 @@ class DboSource extends DataSource
      */
     protected function parseKey($model, $key, $value)
     {
-        $operatorMatch = '/^(('.implode(')|(', $this->__sqlOps);
+        $operatorMatch = '/^((' . implode(')|(', $this->__sqlOps);
         $operatorMatch .= '\\x20)|<[>=]?(?![^>]+>)\\x20?|[>=!]{1,3}(?!<)\\x20?)/is';
         $bound = (strpos($key, '?') !== false || (is_array($value) && strpos($key, ':') !== false));
 
@@ -451,7 +448,7 @@ class DboSource extends DataSource
             list($key, $operator) = explode(' ', trim($key), 2);
 
             if (!preg_match($operatorMatch, trim($operator)) && strpos($operator, ' ') !== false) {
-                $key      = $key.' '.$operator;
+                $key      = $key . ' ' . $operator;
                 $split    = strrpos($key, ' ');
                 $operator = substr($key, $split);
                 $key      = substr($key, 0, $split);
@@ -478,7 +475,7 @@ class DboSource extends DataSource
         }
 
         if ($bound) {
-            return Str::insert($key.' '.trim($operator), $value);
+            return Str::insert($key . ' ' . trim($operator), $value);
         }
 
         if (!preg_match($operatorMatch, trim($operator))) {
@@ -534,14 +531,14 @@ class DboSource extends DataSource
             $end = preg_quote($this->endQuote);
         }
         $conditions = str_replace([$start, $end], '', $conditions);
-        preg_match_all('/(?:[\'\"][^\'\"\\\]*(?:\\\.[^\'\"\\\]*)*[\'\"])|([a-z0-9_'.$start.$end.']*\\.[a-z0-9_'.$start.$end.']*)/i', $conditions, $replace, PREG_PATTERN_ORDER);
+        preg_match_all('/(?:[\'\"][^\'\"\\\]*(?:\\\.[^\'\"\\\]*)*[\'\"])|([a-z0-9_' . $start . $end . ']*\\.[a-z0-9_' . $start . $end . ']*)/i', $conditions, $replace, PREG_PATTERN_ORDER);
 
         if (isset($replace['1']['0'])) {
             $pregCount = count($replace['1']);
 
             for ($i = 0; $i < $pregCount; ++$i) {
                 if (!empty($replace['1'][$i]) && !is_numeric($replace['1'][$i])) {
-                    $conditions = preg_replace('/\b'.preg_quote($replace['1'][$i]).'\b/', $this->name($replace['1'][$i]), $conditions);
+                    $conditions = preg_replace('/\b' . preg_quote($replace['1'][$i]) . '\b/', $this->name($replace['1'][$i]), $conditions);
                 }
             }
 
@@ -568,14 +565,14 @@ class DboSource extends DataSource
             }
 
             if (intval($offset)) {
-                $rt .= ' '.$offset.',';
+                $rt .= ' ' . $offset . ',';
             }
 
             if (intval($page) && !$offset) {
-                $rt .= ' '.$limit * ($page - 1).',';
+                $rt .= ' ' . $limit * ($page - 1) . ',';
             }
 
-            $rt .= ' '.$limit;
+            $rt .= ' ' . $limit;
 
             return $rt;
         }
@@ -604,14 +601,14 @@ class DboSource extends DataSource
         }
 
         if (is_array($keys)) {
-            $keys = ($this->countDim($keys) > 1) ? array_map([&$this, 'order'], $keys) : $keys;
+            $keys = ($this->countDim($keys) > 1) ? array_map([ & $this, 'order'], $keys) : $keys;
 
             foreach ($keys as $key => $value) {
                 if (is_numeric($key)) {
                     $key   = $value   = ltrim(str_replace('ORDER BY ', '', $this->order($value)));
-                    $value = (!preg_match('/\\x20ASC|\\x20DESC/i', $key) ? ' '.$direction : '');
+                    $value = (!preg_match('/\\x20ASC|\\x20DESC/i', $key) ? ' ' . $direction : '');
                 } else {
-                    $value = ' '.$value;
+                    $value = ' ' . $value;
                 }
 
                 if (!preg_match('/^.+\\(.*\\)/', $key) && !strpos($key, ',')) {
@@ -625,12 +622,12 @@ class DboSource extends DataSource
                     if (!preg_match('/\s/', $key)) {
                         $key = $this->name($key);
                     }
-                    $key .= ' '.trim($dir);
+                    $key .= ' ' . trim($dir);
                 }
-                $order[] = $this->order($key.$value);
+                $order[] = $this->order($key . $value);
             }
 
-            return ' ORDER BY '.trim(str_replace('ORDER BY', '', implode(',', $order)));
+            return ' ORDER BY ' . trim(str_replace('ORDER BY', '', implode(',', $order)));
         }
         $keys = preg_replace('/ORDER\\x20BY/i', '', $keys);
 
@@ -640,19 +637,19 @@ class DboSource extends DataSource
 
             for ($i = 0; $i < $pregCount; ++$i) {
                 if (!is_numeric($result[0][$i])) {
-                    $keys = preg_replace('/'.$result[0][$i].'/', $this->name($result[0][$i]), $keys);
+                    $keys = preg_replace('/' . $result[0][$i] . '/', $this->name($result[0][$i]), $keys);
                 }
             }
-            $result = ' ORDER BY '.$keys;
+            $result = ' ORDER BY ' . $keys;
 
-            return $result.(!preg_match('/\\x20ASC|\\x20DESC/i', $keys) ? ' '.$direction : '');
+            return $result . (!preg_match('/\\x20ASC|\\x20DESC/i', $keys) ? ' ' . $direction : '');
         } elseif (preg_match('/(\\x20ASC|\\x20DESC)/i', $keys, $match)) {
             $direction = $match[1];
 
-            return ' ORDER BY '.preg_replace('/'.$match[1].'/', '', $keys).$direction;
+            return ' ORDER BY ' . preg_replace('/' . $match[1] . '/', '', $keys) . $direction;
         }
 
-        return ' ORDER BY '.$keys.' '.$direction;
+        return ' ORDER BY ' . $keys . ' ' . $direction;
     }
 
     /**
@@ -669,7 +666,7 @@ class DboSource extends DataSource
                 $group = implode(', ', $group);
             }
 
-            return ' GROUP BY '.$this->quoteFields($group);
+            return ' GROUP BY ' . $this->quoteFields($group);
         }
     }
 
@@ -686,7 +683,7 @@ class DboSource extends DataSource
     {
         if (is_array($data) && !empty($data)) {
             return array_map(
-                [&$this, 'value'],
+                [ & $this, 'value'],
                 $data, array_fill(0, count($data), $column), array_fill(0, count($data), $read)
             );
         }
@@ -704,11 +701,11 @@ class DboSource extends DataSource
         }
 
         if (is_string($data)) {
-            return   "'".$this->escape($data)."'";
+            return "'" . $this->escape($data) . "'";
         }
 
         if (is_null($data)) {
-            return   "''";
+            return "''";
         }
 
         return $data;
@@ -750,32 +747,32 @@ class DboSource extends DataSource
 
                 if (!empty($fields[1])) {
                     if (!empty($fields[2])) {
-                        $data[$i] = $fields[1].'('.$this->name($fields[2]).')'.$fields[3];
+                        $data[$i] = $fields[1] . '(' . $this->name($fields[2]) . ')' . $fields[3];
                     } else {
-                        $data[$i] = $fields[1].'()'.$fields[3];
+                        $data[$i] = $fields[1] . '()' . $fields[3];
                     }
                 }
             }
-            $data[$i] = str_replace('.', $this->endQuote.'.'.$this->startQuote, $data[$i]);
-            $data[$i] = $this->startQuote.$data[$i].$this->endQuote;
-            $data[$i] = str_replace($this->startQuote.$this->startQuote, $this->startQuote, $data[$i]);
-            $data[$i] = str_replace($this->startQuote.'(', '(', $data[$i]);
-            $data[$i] = str_replace(')'.$this->startQuote, ')', $data[$i]);
+            $data[$i] = str_replace('.', $this->endQuote . '.' . $this->startQuote, $data[$i]);
+            $data[$i] = $this->startQuote . $data[$i] . $this->endQuote;
+            $data[$i] = str_replace($this->startQuote . $this->startQuote, $this->startQuote, $data[$i]);
+            $data[$i] = str_replace($this->startQuote . '(', '(', $data[$i]);
+            $data[$i] = str_replace(')' . $this->startQuote, ')', $data[$i]);
             $alias    = !empty($this->alias) ? $this->alias : 'AS ';
 
-            if (preg_match('/\s+'.$alias.'\s*/', $data[$i])) {
-                if (preg_match('/\w+\s+'.$alias.'\s*/', $data[$i])) {
-                    $quoted   = $this->endQuote.' '.$alias.$this->startQuote;
-                    $data[$i] = str_replace(' '.$alias, $quoted, $data[$i]);
+            if (preg_match('/\s+' . $alias . '\s*/', $data[$i])) {
+                if (preg_match('/\w+\s+' . $alias . '\s*/', $data[$i])) {
+                    $quoted   = $this->endQuote . ' ' . $alias . $this->startQuote;
+                    $data[$i] = str_replace(' ' . $alias, $quoted, $data[$i]);
                 } else {
-                    $quoted   = $alias.$this->startQuote;
-                    $data[$i] = str_replace($alias, $quoted, $data[$i]).$this->endQuote;
+                    $quoted   = $alias . $this->startQuote;
+                    $data[$i] = str_replace($alias, $quoted, $data[$i]) . $this->endQuote;
                 }
             }
 
             if (!empty($this->endQuote) && $this->endQuote == $this->startQuote) {
                 if (substr_count($data[$i], $this->endQuote) % 2 == 1) {
-                    if (substr($data[$i], -2) == $this->endQuote.$this->endQuote) {
+                    if (substr($data[$i], -2) == $this->endQuote . $this->endQuote) {
                         $data[$i] = substr($data[$i], 0, -1);
                     } else {
                         $data[$i] = trim($data[$i], $this->endQuote);
@@ -783,9 +780,9 @@ class DboSource extends DataSource
                 }
             }
             if (strpos($data[$i], '*')) {
-                $data[$i] = str_replace($this->endQuote.'*'.$this->endQuote, '*', $data[$i]);
+                $data[$i] = str_replace($this->endQuote . '*' . $this->endQuote, '*', $data[$i]);
             }
-            $data[$i] = str_replace($this->endQuote.$this->endQuote, $this->endQuote, $data[$i]);
+            $data[$i] = str_replace($this->endQuote . $this->endQuote, $this->endQuote, $data[$i]);
         }
 
         return (!$array) ? $data[0] : $data;
@@ -822,25 +819,25 @@ class DboSource extends DataSource
         $data = trim($data);
         if (preg_match('/^[\w-]+(?:\.[^ \*]*)*$/', $data)) { // string, string.string
             if (strpos($data, '.') === false) { // string
-                return $this->startQuote.$data.$this->endQuote;
+                return $this->startQuote . $data . $this->endQuote;
             }
             $items = explode('.', $data);
 
-            return implode($this->endQuote.'.'.$this->startQuote, $items).$this->endQuote;
+            return implode($this->endQuote . '.' . $this->startQuote, $items) . $this->endQuote;
         }
         if (preg_match('/^[\w-]+\.\*$/', $data)) { // string.*
-            return $this->startQuote.str_replace('.*', $this->endQuote.'.*', $data);
+            return $this->startQuote . str_replace('.*', $this->endQuote . '.*', $data);
         }
         if (preg_match('/^([\w-]+)\((.*)\)$/', $data, $matches)) { // Functions
-            return $matches[1].'('.$this->name($matches[2]).')';
+            return $matches[1] . '(' . $this->name($matches[2]) . ')';
         }
         if (
-            preg_match('/^([\w-]+(\.[\w-]+|\(.*\))*)\s+'.preg_quote($this->alias).'\s*([\w-]+)$/i', $data, $matches
-        )) {
-            return preg_replace('/\s{2,}/', ' ', $this->name($matches[1]).' '.$this->alias.' '.$this->name($matches[3]));
+            preg_match('/^([\w-]+(\.[\w-]+|\(.*\))*)\s+' . preg_quote($this->alias) . '\s*([\w-]+)$/i', $data, $matches
+            )) {
+            return preg_replace('/\s{2,}/', ' ', $this->name($matches[1]) . ' ' . $this->alias . ' ' . $this->name($matches[3]));
         }
         if (preg_match('/^[\w-_\s]*[\w-_]+/', $data)) {
-            return $this->startQuote.$data.$this->endQuote;
+            return $this->startQuote . $data . $this->endQuote;
         }
 
         return $data;
@@ -858,31 +855,31 @@ class DboSource extends DataSource
      */
     public function _prepareUpdateFields($fields, $quoteValues = true, $alias = false)
     {
-        $quotedAlias = $this->startQuote.$model->alias.$this->endQuote;
+        $quotedAlias = $this->startQuote . $model->alias . $this->endQuote;
 
         $updates = [];
         foreach ($fields as $field => $value) {
             if ($alias && strpos($field, '.') === false) {
                 $quoted = $model->escapeField($field);
             } elseif (!$alias && strpos($field, '.') !== false) {
-                $quoted = $this->name(str_replace($quotedAlias.'.', '', str_replace(
-                    $model->alias.'.', '', $field
+                $quoted = $this->name(str_replace($quotedAlias . '.', '', str_replace(
+                    $model->alias . '.', '', $field
                 )));
             } else {
                 $quoted = $this->name($field);
             }
 
             if ($value === null) {
-                $updates[] = $quoted.' = NULL';
+                $updates[] = $quoted . ' = NULL';
                 continue;
             }
-            $update = $quoted.' = ';
+            $update = $quoted . ' = ';
 
             if ($quoteValues) {
                 $update .= $this->value($value);
             } elseif (!$alias) {
-                $update .= str_replace($quotedAlias.'.', '', str_replace(
-                    $model->alias.'.', '', $value
+                $update .= str_replace($quotedAlias . '.', '', str_replace(
+                    $model->alias . '.', '', $value
                 ));
             } else {
                 $update .= $value;
@@ -913,12 +910,12 @@ class DboSource extends DataSource
                 if (!empty($value['unique'])) {
                     $out .= 'UNIQUE ';
                 }
-                $name = $this->startQuote.$name.$this->endQuote;
+                $name = $this->startQuote . $name . $this->endQuote;
             }
             if (is_array($value['column'])) {
-                $out .= 'KEY '.$name.' ('.implode(', ', array_map([&$this, 'name'], $value['column'])).')';
+                $out .= 'KEY ' . $name . ' (' . implode(', ', array_map([ & $this, 'name'], $value['column'])) . ')';
             } else {
-                $out .= 'KEY '.$name.' ('.$this->name($value['column']).')';
+                $out .= 'KEY ' . $name . ' (' . $this->name($value['column']) . ')';
             }
             $join[] = $out;
         }
@@ -936,7 +933,7 @@ class DboSource extends DataSource
      */
     public function truncate($table)
     {
-        return $this->query('TRUNCATE TABLE '.$table);
+        return $this->query('TRUNCATE TABLE ' . $this->table($table));
     }
 
     /**

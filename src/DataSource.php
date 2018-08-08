@@ -190,11 +190,16 @@ class DataSource
 
     protected function logSqlError($sql)
     {
-        $message = $this->lastError().' : '.$sql;
+        $message = $this->lastError() . ' : ' . $sql;
 
         Log::write('sql', $message);
 
         return true;
+    }
+
+    protected function table($name)
+    {
+        return str_replace('#__', $this->prefix, $name);
     }
 
     /**

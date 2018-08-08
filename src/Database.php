@@ -49,7 +49,11 @@ class Database
         $this->cache  = $config['cache'];
         $this->prefix = $config['prefix'];
 
-        $database = '\\Turbo\\Database\\Drivers\\'.ucfirst($driver).'Driver';
+        if (false !== strpos($driver, '\\')) {
+            $database = $driver;
+        } else {
+            $database = '\\Turbo\\Database\\Drivers\\'.ucfirst($driver).'Driver';
+        }
 
         $driver = new $database($config);
         $this->setDriver($driver);
@@ -141,7 +145,7 @@ class Database
         }
 
         $cache_key = $name ?: md5($sql);
-        $cache_key = 'db_'.$cache_key;
+        $cache_key = 'db_' . $cache_key;
 
         return $this->get('cache')->remember($cache_key, function () use ($sql) {
             return $this->getFromDb($sql);
@@ -337,7 +341,7 @@ class Database
                 $query = $this->driver->buildStatement($params, $table);
 
                 if ($params['group']) {
-                    $query = 'SELECT COUNT(*) AS total FROM ('.$query.') as tmp';
+                    $query = 'SELECT COUNT(*) AS total FROM (' . $query . ') as tmp';
                 }
                 $data    = $this->fetch($query, $cache, $cache_name);
                 $results = intval($data[0]['total']);
@@ -404,7 +408,7 @@ class Database
                 }
                 break;
             /*
-                $database->find('menu','neighbors',array('field'=>ordering,'value'=>1));
+            $database->find('menu','neighbors',array('field'=>ordering,'value'=>1));
              */
             case 'neighbors':
             case 'siblings':
@@ -424,8 +428,8 @@ class Database
                 }
 
                 //build first query
-                $params['order']      = [$field.' DESC'];
-                $params['conditions'] = array_merge([$field.' < ' => $value], $conditions);
+                $params['order']      = [$field . ' DESC'];
+                $params['conditions'] = array_merge([$field . ' < ' => $value], $conditions);
 
                 $query = $this->driver->buildStatement($params, $table);
                 $data  = $this->fetch($query, $cache, $cache_name);
@@ -434,7 +438,7 @@ class Database
 
                 //build second query
                 $params['order']      = [$field];
-                $params['conditions'] = array_merge([$field.' > ' => $value], $conditions);
+                $params['conditions'] = array_merge([$field . ' > ' => $value], $conditions);
 
                 $query = $this->driver->buildStatement($params, $table);
                 $data  = $this->fetch($query, $cache, $cache_name);
@@ -443,14 +447,14 @@ class Database
 
                 break;
             /*
-                $html =  '<li><input type="checkbox" name="category[]" class="liChild" value="{menuID}"/>{name}';
-                $database->find('menu','threaded',
-                                    array('order'=>array('parent_id', 'ordering'),
-                                          'html'=>array($html,'</li>')
-                                          'parent'=>0,
-                                          'field'=>array('primary_key','parent_id'),
-                                          'parent_tag'=>array('<ul>','</ul>'))
-                                );
+            $html =  '<li><input type="checkbox" name="category[]" class="liChild" value="{menuID}"/>{name}';
+            $database->find('menu','threaded',
+            array('order'=>array('parent_id', 'ordering'),
+            'html'=>array($html,'</li>')
+            'parent'=>0,
+            'field'=>array('primary_key','parent_id'),
+            'parent_tag'=>array('<ul>','</ul>'))
+            );
              */
             case 'threaded':
 
@@ -506,7 +510,7 @@ class Database
      * @param array $menuData
      * @param string $ht ($html)
      * @param array $parentTag
-    */
+     */
 
     protected function buildThreaded($parent, $menuData, $replace, $parentTag)
     {
@@ -609,10 +613,10 @@ class Database
         $dlimit = $_REQUEST['limit'];
 
         $page = ($params['page'] && is_numeric($params['page']))
-            ? $params['page']
-            : !empty($page) && is_numeric($page)
-            ? $page
-            : 1;
+        ? $params['page']
+        : !empty($page) && is_numeric($page)
+        ? $page
+        : 1;
 
         $limit = $params['limit'];
 
@@ -645,8 +649,8 @@ class Database
             $hasTotal = true;
         } else {
             if (($paging != 'scroll' && $paging != 'mixed') ||
-              (($paging == 'scroll' || $paging == 'mixed') &&
-               $page == 1)) {
+                (($paging == 'scroll' || $paging == 'mixed') &&
+                    $page == 1)) {
                 foreach ($tables as $table) {
                     $total += $this->find($table, 'count', $params);
                 }
@@ -741,7 +745,7 @@ class Database
                     $va[] = ($v2) ? $this->driver->value($v2) : "''";
                     $k[]  = $this->driver->name($k2);
                 }
-                $v[] = '('.@implode(',', $va).')';
+                $v[] = '(' . @implode(',', $va) . ')';
             } else {
                 $v[] = ($value) ? $this->driver->value($value) : "''";
                 $k[] = $this->driver->name($key);
@@ -816,7 +820,7 @@ class Database
         $k = [];
         foreach ($params['fields'] as $key => $value) {
             if ($key && !is_numeric($key)) {
-                $k[] = $this->driver->name($key).' = '.$this->driver->value($value);
+                $k[] = $this->driver->name($key) . ' = ' . $this->driver->value($value);
             } else {
                 $k[] = $value;
             }
@@ -840,7 +844,7 @@ class Database
     public function cascade($table, $data = [], $conditions = [], $details = [])
     {
         $rows = $this->find($table, 'count', [
-          'conditions' => $conditions,
+            'conditions' => $conditions,
         ]);
 
         if ($rows > 0) {
@@ -916,7 +920,7 @@ class Database
      */
     public function truncate($table)
     {
-        return $this->query('TRUNCATE TABLE '.$table);
+        return $this->query('TRUNCATE TABLE ' . $table);
     }
 
     public function escape($value)
@@ -959,7 +963,7 @@ class Database
         if ($error) {
             $r .= "<span style = \"color:Red;\"><b>SQL Error:</b> {$error}</span>";
         }
-        $r .= '<b>Query:</b> '.$this->sql;
+        $r .= '<b>Query:</b> ' . $this->sql;
         $r .= '</p>';
 
         if ($echo) {
