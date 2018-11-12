@@ -53,7 +53,7 @@ class MysqliDriver extends DboSource
         }
 
         if ($config['persistent']) {
-            $config['host'] = 'p:'.ltrim($config['host'], 'p:');
+            $config['host'] = 'p:' . ltrim($config['host'], 'p:');
         }
 
         $this->connection = mysqli_connect($config['host'], $config['username'], $config['password'], $config['database'], $config['port'], $config['socket']);
@@ -125,7 +125,7 @@ class MysqliDriver extends DboSource
     public function lastError()
     {
         if ($this->connection && mysqli_errno($this->connection)) {
-            return mysqli_errno($this->connection).': '.mysqli_error($this->connection);
+            return mysqli_errno($this->connection) . ': ' . mysqli_error($this->connection);
         }
     }
 
@@ -213,7 +213,7 @@ class MysqliDriver extends DboSource
      */
     public function setEncoding($enc)
     {
-        return $this->query('SET NAMES '.$enc) != false;
+        return $this->query('SET NAMES ' . $enc) != false;
     }
 
     /**
@@ -223,7 +223,7 @@ class MysqliDriver extends DboSource
      */
     public function setTimezone($zone)
     {
-        return $this->query('SET time_zone = '.$zone) != false;
+        return $this->query('SET time_zone = ' . $zone) != false;
     }
 
     /**
@@ -251,6 +251,6 @@ class MysqliDriver extends DboSource
             $str = addslashes($str);
         }
 
-        return trim($str);
+        return $str;
     }
 }
