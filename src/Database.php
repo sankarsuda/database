@@ -52,12 +52,16 @@ class Database
         if (false !== strpos($driver, '\\')) {
             $database = $driver;
         } else {
-            $database = '\\Turbo\\Database\\Drivers\\'.ucfirst($driver).'Driver';
+            $database = '\\Turbo\\Database\\Drivers\\' . ucfirst($driver) . 'Driver';
         }
 
         $driver = new $database($config);
         $this->setDriver($driver);
-        $this->connected = $driver->connect();
+        $this->connected = true;
+
+        if (false !== $config['autoconnect']) {
+            $this->connected = $driver->connect();
+        }
 
         return $driver;
     }
@@ -80,7 +84,7 @@ class Database
             return false;
         }
 
-        $this->connected = $this->driver->query('SELECT 1');
+        $this->connected = $this->query('SELECT 1');
 
         return $this->connected;
     }
@@ -110,7 +114,7 @@ class Database
             return $this->connect();
         }
 
-        $connected = $this->driver->query('SELECT 1');
+        $connected = $this->query('SELECT 1');
         if ($connected) {
             return true;
         }
