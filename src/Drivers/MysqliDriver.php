@@ -94,6 +94,7 @@ class MysqliDriver extends DboSource
         if (isset($this->results) && is_resource($this->results)) {
             mysqli_free_result($this->results);
         }
+
         $this->connected = !@mysqli_close($this->connection);
 
         return !$this->connected;
@@ -140,21 +141,9 @@ class MysqliDriver extends DboSource
     {
         $result = mysqli_query($this->connection, $sql);
         if (!$result) {
-            $messages = [
-                'MySQL server has gone away',
-                'php_network_getaddresses: getaddrinfo failed:',
-            ];
+            $error = $this->lastError();
 
-            $connect = false;
-            $error   = $this->lastError();
-
-            foreach ($messages as $message) {
-                if (strpos($error, $message) !== false) {
-                    $connect = true;
-                }
-            }
-
-            if ($connect && $this->attempts <= 3) {
+            if ($this->attempts <= 3 && $this->causedByConnectionLost($error)) {
                 ++$this->attempts;
                 $this->disconnect();
                 $this->connect();
@@ -162,10 +151,61 @@ class MysqliDriver extends DboSource
                 return $this->query($sql);
             }
 
+            if ($this->attempts <= 3 && $this->causedByDeadlock($error)) {
+                ++$this->attempts;
+                return $this->query($sql);
+            }
+
             $this->logSqlError($sql);
         }
 
+        $this->attempts = 0;
         return $result;
+    }
+
+    protected function causedByConnectionLost($error)
+    {
+        $messages = [
+            'MySQL server has gone away',
+            'php_network_getaddresses: getaddrinfo failed:',
+        ];
+
+        foreach ($messages as $message) {
+            if (strpos($error, $message) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine if the given exception was caused by a deadlock.
+     *
+     * @param  \Exception  $e
+     * @return bool
+     */
+    protected function causedByDeadlock($error)
+    {
+        $messages = [
+            'Deadlock found when trying to get lock',
+            'deadlock detected',
+            'The database file is locked',
+            'database is locked',
+            'database table is locked',
+            'A table in the database is locked',
+            'has been chosen as the deadlock victim',
+            'Lock wait timeout exceeded; try restarting transaction',
+            'WSREP detected deadlock/conflict and aborted the transaction. Try restarting the transaction',
+        ];
+
+        foreach ($messages as $message) {
+            if (strpos($error, $message) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -236,19 +276,10 @@ class MysqliDriver extends DboSource
         return mysqli_client_encoding($this->connection);
     }
 
-    /**
-     * Helper function to clean the incoming values.
-     **/
     public function escape($str)
     {
-        if ($str == '') {
-            return;
-        }
-
-        if (function_exists('mysqli_real_escape_string')) {
+        if (is_string($str)) {
             $str = mysqli_real_escape_string($this->connection, $str);
-        } else {
-            $str = addslashes($str);
         }
 
         return $str;
