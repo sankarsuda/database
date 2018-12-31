@@ -21,7 +21,7 @@ class Database
 {
     protected $cache     = false;
     protected $connected = false;
-    protected $driver;
+    protected $driver = null;
     protected $config = [];
     protected $prefix;
     protected $sql;
@@ -74,7 +74,11 @@ class Database
     }
 
     protected function getDriver()
-    {
+    {   
+        if (is_null($this->driver)) {
+            return $this->connect();
+        }
+
         return $this->driver;
     }
 
@@ -94,7 +98,7 @@ class Database
      */
     public function disConnect()
     {
-        $this->driver->disConnect();
+        $this->getDriver()->disConnect();
         $this->connected = false;
     }
 
@@ -172,7 +176,7 @@ class Database
 
     protected function getFromDb($sql)
     {
-        return $this->driver->fetch($sql);
+        return $this->getDriver()->fetch($sql);
     }
 
     /**
@@ -186,7 +190,7 @@ class Database
      */
     public function begin()
     {
-        return $this->driver->begin();
+        return $this->getDriver()->begin();
     }
 
     /**
@@ -200,7 +204,7 @@ class Database
      */
     public function commit()
     {
-        return $this->driver->commit();
+        return $this->getDriver()->commit();
     }
 
     /**
@@ -214,7 +218,7 @@ class Database
      */
     public function rollback()
     {
-        return $this->driver->rollback();
+        return $this->getDriver()->rollback();
     }
 
     /**
@@ -229,12 +233,12 @@ class Database
         $sql       = str_replace('#__', $this->prefix, $sql);
         $this->sql = $sql;
 
-        return $this->driver->query($sql);
+        return $this->getDriver()->query($sql);
     }
 
     public function lastError()
     {
-        return $this->driver->lastError();
+        return $this->getDriver()->lastError();
     }
 
     /**
@@ -246,7 +250,7 @@ class Database
      */
     public function lastInsertId()
     {
-        return $this->driver->lastInsertId();
+        return $this->getDriver()->lastInsertId();
     }
 
     /**
@@ -258,7 +262,7 @@ class Database
      */
     public function lastNumRows()
     {
-        return $this->driver->lastNumRows();
+        return $this->getDriver()->lastNumRows();
     }
 
     /**
@@ -270,17 +274,17 @@ class Database
      */
     public function lastAffected()
     {
-        return $this->driver->lastAffected();
+        return $this->getDriver()->lastAffected();
     }
 
     public function getTableList()
     {
-        return $this->driver->getTableList();
+        return $this->getDriver()->getTableList();
     }
 
     public function getTableFields($tables, $typeonly = true)
     {
-        return $this->driver->getTableFields($tables, $typeonly);
+        return $this->getDriver()->getTableFields($tables, $typeonly);
     }
 
     /**
@@ -342,7 +346,7 @@ class Database
 
                 $params['fields'] = ['count(*) as total'];
                 unset($params['limit'], $params['order'], $params['offset'], $params['page']);
-                $query = $this->driver->buildStatement($params, $table);
+                $query = $this->getDriver()->buildStatement($params, $table);
 
                 if ($params['group']) {
                     $query = 'SELECT COUNT(*) AS total FROM (' . $query . ') as tmp';
@@ -353,7 +357,7 @@ class Database
                 break;
 
             case 'all':
-                $query   = $this->driver->buildStatement($params, $table);
+                $query   = $this->getDriver()->buildStatement($params, $table);
                 $results = $this->fetch($query, $cache, $cache_name);
                 break;
             /*
@@ -363,7 +367,7 @@ class Database
              *       );
              */
             case 'list':
-                $query = $this->driver->buildStatement($params, $table);
+                $query = $this->getDriver()->buildStatement($params, $table);
                 $rows  = $this->fetch($query, $cache, $cache_name);
 
                 $fields = [];
@@ -435,7 +439,7 @@ class Database
                 $params['order']      = [$field . ' DESC'];
                 $params['conditions'] = array_merge([$field . ' < ' => $value], $conditions);
 
-                $query = $this->driver->buildStatement($params, $table);
+                $query = $this->getDriver()->buildStatement($params, $table);
                 $data  = $this->fetch($query, $cache, $cache_name);
 
                 $results['prev'] = ($params['limit']) ? $data[0] : $data;
@@ -444,7 +448,7 @@ class Database
                 $params['order']      = [$field];
                 $params['conditions'] = array_merge([$field . ' > ' => $value], $conditions);
 
-                $query = $this->driver->buildStatement($params, $table);
+                $query = $this->getDriver()->buildStatement($params, $table);
                 $data  = $this->fetch($query, $cache, $cache_name);
 
                 $results['next'] = ($params['limit']) ? $data[0] : $data;
@@ -466,7 +470,7 @@ class Database
                     throw new Exception('field not found');
                 }
 
-                $query = $this->driver->buildStatement($params, $table);
+                $query = $this->getDriver()->buildStatement($params, $table);
                 $data  = $this->fetch($query, $cache, $cache_name);
 
                 $menuData = ['items' => [], 'parents' => []];
@@ -481,13 +485,13 @@ class Database
 
             case 'first':
                 $params['limit'] = 1;
-                $query           = $this->driver->buildStatement($params, $table);
+                $query           = $this->getDriver()->buildStatement($params, $table);
                 $results         = $this->fetch($query, $cache, $cache_name);
                 $results         = $results[0];
                 break;
 
             case 'field':
-                $query   = $this->driver->buildStatement($params, $table);
+                $query   = $this->getDriver()->buildStatement($params, $table);
                 $rows    = $this->fetch($query, $cache, $cache_name);
                 $results = [];
                 foreach ($rows as $key => $v) {
@@ -746,13 +750,13 @@ class Database
             if (is_array($value)) {
                 $va = [];
                 foreach ($value as $k2 => $v2) {
-                    $va[] = ($v2) ? $this->driver->value($v2) : "''";
-                    $k[]  = $this->driver->name($k2);
+                    $va[] = ($v2) ? $this->getDriver()->value($v2) : "''";
+                    $k[]  = $this->getDriver()->name($k2);
                 }
                 $v[] = '(' . @implode(',', $va) . ')';
             } else {
-                $v[] = ($value) ? $this->driver->value($value) : "''";
-                $k[] = $this->driver->name($key);
+                $v[] = ($value) ? $this->getDriver()->value($value) : "''";
+                $k[] = $this->getDriver()->name($key);
             }
         }
 
@@ -763,7 +767,7 @@ class Database
         $params['fields'] = $k;
         $params['values'] = $v;
 
-        $query = $this->driver->buildStatement($params, $table, 'insert');
+        $query = $this->getDriver()->buildStatement($params, $table, 'insert');
 
         $results = $this->query($query);
 
@@ -824,14 +828,14 @@ class Database
         $k = [];
         foreach ($params['fields'] as $key => $value) {
             if ($key && !is_numeric($key)) {
-                $k[] = $this->driver->name($key) . ' = ' . $this->driver->value($value);
+                $k[] = $this->getDriver()->name($key) . ' = ' . $this->getDriver()->value($value);
             } else {
                 $k[] = $value;
             }
         }
         $params['fields'] = $k;
 
-        $query = $this->driver->buildStatement($params, $params['table'], 'update');
+        $query = $this->getDriver()->buildStatement($params, $params['table'], 'update');
 
         $results = $this->query($query);
 
@@ -900,7 +904,7 @@ class Database
         }
         //end of helpers
 
-        $query = $this->driver->buildStatement($params, $params['table'], 'delete');
+        $query = $this->getDriver()->buildStatement($params, $params['table'], 'delete');
 
         $results = $this->query($query);
 
@@ -929,7 +933,7 @@ class Database
 
     public function escape($value)
     {
-        return $this->driver->escape($value);
+        return $this->getDriver()->escape($value);
     }
 
     /**
@@ -940,7 +944,7 @@ class Database
      */
     public function buildQuery($table, $params = [], $type = 'select')
     {
-        return $this->driver->buildStatement($params, $table, $type);
+        return $this->getDriver()->buildStatement($params, $table, $type);
     }
 
     /**
@@ -951,7 +955,7 @@ class Database
      */
     public function buildConditions($conditions = [])
     {
-        return $this->driver->conditions($conditions);
+        return $this->getDriver()->conditions($conditions);
     }
 
     /**

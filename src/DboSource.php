@@ -688,14 +688,6 @@ class DboSource extends DataSource
             );
         }
 
-        if (is_object($data) && isset($data->type)) {
-            if ($data->type == 'identifier') {
-                return $this->name($data->value);
-            } elseif ($data->type == 'expression') {
-                return $data->value;
-            }
-        }
-
         if (@stripos($data, 'sql:select') !== false) {
             return str_replace(['sql:'], '', $data);
         }
@@ -724,9 +716,7 @@ class DboSource extends DataSource
         if ($data == '*') {
             return '*';
         }
-        if (is_object($data) && isset($data->type)) {
-            return $data->value;
-        }
+       
         $array = is_array($data);
         $data  = (array) $data;
         $count = count($data);
@@ -786,141 +776,6 @@ class DboSource extends DataSource
         }
 
         return (!$array) ? $data[0] : $data;
-    }
-
-    /**
-     * Returns a quoted name of $data for use in an SQL statement.
-     * Strips fields out of SQL functions before quoting.
-     *
-     * Results of this method are stored in a memory cache.  This improves performance, but
-     * because the method uses a simple hashing algorithm it can infrequently have collisions.
-     * Setting DboSource::$cacheMethods to false will disable the memory cache.
-     *
-     * @param mixed $data Either a string with a column to quote. An array of columns to quote or an
-     *                    object from DboSource::expression() or DboSource::identifier()
-     *
-     * @return string SQL field
-     */
-    public function names($data)
-    {
-        if (is_object($data) && isset($data->type)) {
-            return $data->value;
-        }
-        if ($data === '*') {
-            return '*';
-        }
-        if (is_array($data)) {
-            foreach ($data as $i => $dataItem) {
-                $data[$i] = $this->name($dataItem);
-            }
-
-            return $data;
-        }
-        $data = trim($data);
-        if (preg_match('/^[\w-]+(?:\.[^ \*]*)*$/', $data)) { // string, string.string
-            if (strpos($data, '.') === false) { // string
-                return $this->startQuote . $data . $this->endQuote;
-            }
-            $items = explode('.', $data);
-
-            return implode($this->endQuote . '.' . $this->startQuote, $items) . $this->endQuote;
-        }
-        if (preg_match('/^[\w-]+\.\*$/', $data)) { // string.*
-            return $this->startQuote . str_replace('.*', $this->endQuote . '.*', $data);
-        }
-        if (preg_match('/^([\w-]+)\((.*)\)$/', $data, $matches)) { // Functions
-            return $matches[1] . '(' . $this->name($matches[2]) . ')';
-        }
-        if (
-            preg_match('/^([\w-]+(\.[\w-]+|\(.*\))*)\s+' . preg_quote($this->alias) . '\s*([\w-]+)$/i', $data, $matches
-            )) {
-            return preg_replace('/\s{2,}/', ' ', $this->name($matches[1]) . ' ' . $this->alias . ' ' . $this->name($matches[3]));
-        }
-        if (preg_match('/^[\w-_\s]*[\w-_]+/', $data)) {
-            return $this->startQuote . $data . $this->endQuote;
-        }
-
-        return $data;
-    }
-
-    /**
-     * Quotes and prepares fields and values for an SQL UPDATE statement.
-     *
-     * @param Model $model
-     * @param array $fields
-     * @param bool  $quoteValues If values should be quoted, or treated as SQL snippets
-     * @param bool  $alias       Include the model alias in the field name
-     *
-     * @return array Fields and values, quoted and prepared
-     */
-    public function _prepareUpdateFields($fields, $quoteValues = true, $alias = false)
-    {
-        $quotedAlias = $this->startQuote . $model->alias . $this->endQuote;
-
-        $updates = [];
-        foreach ($fields as $field => $value) {
-            if ($alias && strpos($field, '.') === false) {
-                $quoted = $model->escapeField($field);
-            } elseif (!$alias && strpos($field, '.') !== false) {
-                $quoted = $this->name(str_replace($quotedAlias . '.', '', str_replace(
-                    $model->alias . '.', '', $field
-                )));
-            } else {
-                $quoted = $this->name($field);
-            }
-
-            if ($value === null) {
-                $updates[] = $quoted . ' = NULL';
-                continue;
-            }
-            $update = $quoted . ' = ';
-
-            if ($quoteValues) {
-                $update .= $this->value($value);
-            } elseif (!$alias) {
-                $update .= str_replace($quotedAlias . '.', '', str_replace(
-                    $model->alias . '.', '', $value
-                ));
-            } else {
-                $update .= $value;
-            }
-            $updates[] = $update;
-        }
-
-        return $updates;
-    }
-
-    /**
-     * Format indexes for create table.
-     *
-     * @param array  $indexes
-     * @param string $table
-     *
-     * @return array
-     */
-    public function buildIndex($indexes, $table = null)
-    {
-        $join = [];
-        foreach ($indexes as $name => $value) {
-            $out = '';
-            if ($name === 'PRIMARY') {
-                $out .= 'PRIMARY ';
-                $name = null;
-            } else {
-                if (!empty($value['unique'])) {
-                    $out .= 'UNIQUE ';
-                }
-                $name = $this->startQuote . $name . $this->endQuote;
-            }
-            if (is_array($value['column'])) {
-                $out .= 'KEY ' . $name . ' (' . implode(', ', array_map([ & $this, 'name'], $value['column'])) . ')';
-            } else {
-                $out .= 'KEY ' . $name . ' (' . $this->name($value['column']) . ')';
-            }
-            $join[] = $out;
-        }
-
-        return $join;
     }
 
     /**
@@ -1026,27 +881,5 @@ class DboSource extends DataSource
         }
 
         return false;
-    }
-
-    /**
-     * Helper function.
-     **/
-    public function escape($str)
-    {
-        if ($str == '') {
-            return;
-        }
-
-        if (get_magic_quotes_gpc()) {
-            return trim($str);
-        }
-
-        if (function_exists('mysql_real_escape_string')) {
-            $str = mysql_real_escape_string($str);
-        } else {
-            $str = addslashes($str);
-        }
-
-        return trim($str);
     }
 }
