@@ -750,12 +750,12 @@ class Database
             if (is_array($value)) {
                 $va = [];
                 foreach ($value as $k2 => $v2) {
-                    $va[] = ($v2) ? $this->getDriver()->value($v2) : "''";
+                    $va[] = $this->getDriver()->value($v2);
                     $k[]  = $this->getDriver()->name($k2);
                 }
                 $v[] = '(' . @implode(',', $va) . ')';
             } else {
-                $v[] = ($value) ? $this->getDriver()->value($value) : "''";
+                $v[] = $this->getDriver()->value($value);
                 $k[] = $this->getDriver()->name($key);
             }
         }
