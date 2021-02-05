@@ -622,9 +622,9 @@ class Database
 
         $page = ($params['page'] && is_numeric($params['page']))
         ? $params['page']
-        : !empty($page) && is_numeric($page)
+        : (!empty($page) && is_numeric($page)
         ? $page
-        : 1;
+        : 1);
 
         $limit = $params['limit'];
 
